@@ -35,6 +35,4 @@ composer require thierrysh/craft-commander
 - add current ?site=en back to redirect url
 - categories
 - craft pro: rbac stuff
-- add ctrl+n, ctrl+p, ctrl+y
-- esc = stop propagation
 - disable k / make it customizable (conflicts sometimes) / only trigger when ctrl pressed

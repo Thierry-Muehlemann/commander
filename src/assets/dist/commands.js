@@ -3,6 +3,11 @@ import { getConfig } from "./config.js";
 const config = getConfig();
 
 export const commands = [
+  {
+    title: "Dashboard",
+    url: "/admin/dashboard",
+    aliases: [],
+  },
   // entries
   {
     title: "Entries",
@@ -206,6 +211,12 @@ export const commands = [
     title: "settings:Globals:create",
     url: "/admin/settings/globals/new",
     aliases: ["new globalset"],
+  },
+  // plugin store
+  {
+    title: "Plugin Store",
+    url: "/admin/plugin-store",
+    aliases: ["pluginstore"],
   },
 ];
 

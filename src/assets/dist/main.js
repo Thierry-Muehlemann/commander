@@ -42,42 +42,73 @@ function mountApp() {
   // creating the markup
   const input = el("input");
   input.name = "commander";
+  input.placeholder = "Navigate";
   const placeholder = createPlaceholder();
-  const results = el("ul", "results");
+  const results = el("div", "results");
   const panel = el("div", "cmd-panel", [input, results, placeholder]);
   const root = el("div", "commander", [panel]);
 
+  let isOpen = false;
   document.body.appendChild(root);
   root.classList.add("hidden");
 
+  function isTextEntryContext(event) {
+    return event.composedPath().some((element) => {
+      if (!(element instanceof HTMLElement)) {
+        return false;
+      }
+
+      if (element.isContentEditable) {
+        return true;
+      }
+
+      if (element instanceof HTMLTextAreaElement) {
+        return !element.disabled && !element.readOnly;
+      }
+
+      if (element instanceof HTMLInputElement) {
+        return (
+          !element.disabled &&
+          !element.readOnly &&
+          ![
+            "button",
+            "checkbox",
+            "color",
+            "file",
+            "hidden",
+            "image",
+            "radio",
+            "range",
+            "reset",
+            "submit",
+          ].includes(element.type)
+        );
+      }
+
+      const role = element.getAttribute("role");
+
+      return (
+        ["textbox", "searchbox", "combobox", "spinbutton"].includes(role) &&
+        element.getAttribute("aria-disabled") !== "true" &&
+        element.getAttribute("aria-readonly") !== "true"
+      );
+    });
+  }
+
   // attaching event listeners
   window.addEventListener("keydown", (e) => {
-    // Bail if the user is typing in a form field
-    const tag = e.target.tagName;
-    if (
-      e.target.isContentEditable ||
-      tag === "INPUT" ||
-      tag === "TEXTAREA" ||
-      tag === "SELECT"
-    ) {
-      if (!e.ctrlKey) {
-        return;
-      }
+    const hasCommandModifier = e.ctrlKey || e.metaKey;
+
+    if (isTextEntryContext(e) && !hasCommandModifier) {
+      return;
     }
 
     switch (e.key) {
-      case "/":
-        e.preventDefault();
-        open();
-        break;
       case "k":
-        if (!e.ctrl) return;
+        if (!hasCommandModifier) return;
+      case ":":
         e.preventDefault();
         open();
-        break;
-      case "Escape":
-        e.preventDefault();
-        close();
         break;
     }
   });
@@ -86,16 +117,53 @@ function mountApp() {
     handleSearch(e.target.value);
   });
 
-  input.addEventListener("keydown", (e) => {
+  let paletteKeybindings;
+
+  function open() {
+    if (isOpen) return;
+
+    isOpen = true;
+    paletteKeybindings = new AbortController();
+
+    window.addEventListener("keydown", handlePaletteKeydown, {
+      capture: true,
+      signal: paletteKeybindings.signal,
+    });
+
+    root.classList.remove("hidden");
+    input.focus();
+  }
+
+  function close() {
+    if (!isOpen) return;
+
+    isOpen = false;
+    paletteKeybindings?.abort();
+    paletteKeybindings = undefined;
+
+    input.blur();
+    root.classList.add("hidden");
+
+    input.value = "";
+    handleSearch(""); // preload results
+  }
+
+  function handlePaletteKeydown(e) {
+    const cmdKey = e.ctrlKey || e.metaKey;
     switch (e.key) {
       case "Escape":
         e.preventDefault();
+        e.stopImmediatePropagation();
         close();
         break;
+      case "n":
+        if (!cmdKey) break;
       case "ArrowDown":
         e.preventDefault();
         selectNext();
         break;
+      case "p":
+        if (!cmdKey) break;
       case "ArrowUp":
         e.preventDefault();
         selectPrev();
@@ -105,19 +173,6 @@ function mountApp() {
           runCommand(commands[commandIndex], e.ctrlKey);
         }
     }
-  });
-
-  function open() {
-    root.classList.remove("hidden");
-    input.focus();
-  }
-
-  function close() {
-    input.blur();
-    root.classList.add("hidden");
-
-    input.value = "";
-    results.innerText = null;
   }
 
   let commands;
@@ -140,7 +195,7 @@ function mountApp() {
   }
 
   function createResult(cmd) {
-    const res = el("li");
+    const res = el("button");
     cmd.title.split(":").forEach((part) => {
       res.appendChild(el("span", undefined, [part]));
     });
@@ -157,12 +212,31 @@ function mountApp() {
 
   function setSelection(nextIndex) {
     const old = results.children.item(commandIndex);
-    if (old !== null) {
-      old.classList.remove("selected");
-    }
+    old?.classList.remove("selected");
+
     commandIndex = nextIndex;
-    results.children.item(commandIndex).classList.add("selected");
+
+    const selected = results.children.item(commandIndex)
+    if (!selected) return;
+
+    selected.classList.add("selected");
+
+    const itemRect = selected.getBoundingClientRect();
+    const resultsRect = results.getBoundingClientRect();
+
+    const isVisible =
+      itemRect.top >= resultsRect.top &&
+      itemRect.bottom <= resultsRect.bottom;
+
+    if (!isVisible) {
+      selected.scrollIntoView({
+        block: "nearest",
+        inline: "nearest",
+      });
+    }
   }
+
+  handleSearch("");
 }
 
 mountApp();
