@@ -149,7 +149,7 @@ function mountApp() {
   }
 
   function handlePaletteKeydown(e) {
-    const cmdKey = e.ctrlKey || e.metaKey;
+    const alt = e.alt;
     switch (e.key) {
       case "Escape":
         e.preventDefault();
@@ -157,13 +157,13 @@ function mountApp() {
         close();
         break;
       case "n":
-        if (!cmdKey) break;
+        if (!alt) break;
       case "ArrowDown":
         e.preventDefault();
         selectNext();
         break;
       case "p":
-        if (!cmdKey) break;
+        if (!alt) break;
       case "ArrowUp":
         e.preventDefault();
         selectPrev();
@@ -216,7 +216,7 @@ function mountApp() {
 
     commandIndex = nextIndex;
 
-    const selected = results.children.item(commandIndex)
+    const selected = results.children.item(commandIndex);
     if (!selected) return;
 
     selected.classList.add("selected");
@@ -225,8 +225,7 @@ function mountApp() {
     const resultsRect = results.getBoundingClientRect();
 
     const isVisible =
-      itemRect.top >= resultsRect.top &&
-      itemRect.bottom <= resultsRect.bottom;
+      itemRect.top >= resultsRect.top && itemRect.bottom <= resultsRect.bottom;
 
     if (!isVisible) {
       selected.scrollIntoView({
